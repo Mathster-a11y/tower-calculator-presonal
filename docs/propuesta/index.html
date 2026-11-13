@@ -1,0 +1,831 @@
+<title>Torre 3D CIRSOC</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,500..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: columna de lectura de 72ch con figuras que se abren a 1100px; índice lateral en escritorio. Estética de plano técnico: papel calco + tinta azul de plano + acento hormigón/óxido. */
+:root{
+  --bg:#f5f6f4; --paper:#ffffff; --ink:#18202a; --muted:#5a6573; --line:#d6dbe0;
+  --blue:#1f4fa8; --blue-soft:#e3eaf7; --rust:#b4532a; --rust-soft:#f6e6dd;
+  --ok:#2e7d4f; --warn:#b07a12; --bad:#b3362c;
+  --cell-in:#dbe6fb; --cell-calc:#ffffff; --cell-fem:#dff1e6;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --paper:#171e26; --ink:#e4e9ee; --muted:#9aa6b3; --line:#2c3642;
+  --blue:#7da6f0; --blue-soft:#1c2a42; --rust:#e08a5f; --rust-soft:#3a2419;
+  --ok:#6cc893; --warn:#e2b04f; --bad:#ef7d72;
+  --cell-in:#1f3157; --cell-calc:#1b232c; --cell-fem:#183528; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --paper:#171e26; --ink:#e4e9ee; --muted:#9aa6b3; --line:#2c3642;
+  --blue:#7da6f0; --blue-soft:#1c2a42; --rust:#e08a5f; --rust-soft:#3a2419;
+  --ok:#6cc893; --warn:#e2b04f; --bad:#ef7d72;
+  --cell-in:#1f3157; --cell-calc:#1b232c; --cell-fem:#183528; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px;
+}
+.wrap{max-width:1100px;margin:0 auto}
+header.top{padding-block:48px 28px;border-bottom:2px solid var(--ink);display:grid;gap:14px}
+.eyebrow{font:500 12px/1.3 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:800 clamp(34px,6vw,64px)/1 var(--f-display);font-stretch:85%;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--blue)}
+.lede{max-width:72ch;font-size:18px;color:var(--ink);margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;font:13px/1.4 var(--f-mono);color:var(--muted)}
+.layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:40px;margin-top:32px}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;font-size:13.5px;line-height:1.45}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:t}
+nav.toc a{color:var(--muted);text-decoration:none;display:block;padding:2px 0 2px 10px;border-left:2px solid var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--blue);border-left-color:var(--blue);outline:none}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}nav.toc{position:static}nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
+main{min-width:0}
+section{padding-block:28px 12px;border-bottom:1px solid var(--line)}
+h2{font:700 30px/1.15 var(--f-display);font-stretch:90%;margin:0 0 6px;text-wrap:balance;display:flex;gap:14px;align-items:baseline}
+h2 .n{font:500 14px var(--f-mono);color:var(--rust)}
+h3{font:600 20px/1.3 var(--f-display);margin:26px 0 6px;text-wrap:balance}
+h4{font:600 15px/1.3 var(--f-body);margin:18px 0 4px}
+p,li{max-width:76ch}
+a{color:var(--blue)}
+code,.mono{font-family:var(--f-mono);font-size:.9em}
+.callout{background:var(--blue-soft);border:1px solid var(--blue);padding:14px 18px;border-radius:4px;margin:16px 0;max-width:80ch}
+.callout.rust{background:var(--rust-soft);border-color:var(--rust)}
+.callout strong:first-child{display:block;font-family:var(--f-display);font-size:16px;margin-bottom:2px}
+.tbl{overflow-x:auto;margin:14px 0;border:1px solid var(--line);background:var(--paper)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:600 12px/1.3 var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--bg)}
+td.num{font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
+.tag{display:inline-block;font:500 11px/1.6 var(--f-mono);padding:0 7px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
+.tag.dep{color:var(--ok)} .tag.idea{color:var(--blue)} .tag.ref{color:var(--warn)} .tag.no{color:var(--bad)}
+figure{margin:22px 0;background:var(--paper);border:1px solid var(--line);padding:12px}
+figure img{display:block;width:100%;height:auto;border:1px solid var(--line)}
+figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.45}
+figcaption b{color:var(--ink)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.gallery figure{margin:0}
+.pill{font:500 11px var(--f-mono);color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px;margin:14px 0}
+.card{background:var(--paper);border:1px solid var(--line);padding:12px 14px}
+.card h4{margin:0 0 4px}
+.card p{margin:0;font-size:14px;color:var(--muted)}
+svg text{font-family:var(--f-mono)}
+.svgbox{overflow-x:auto}
+.svgbox svg{display:block;max-width:100%;height:auto}
+/* demo 3D */
+.demo{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:0;border:1px solid var(--line);background:var(--paper)}
+@media (max-width:760px){.demo{grid-template-columns:minmax(0,1fr)}}
+#view{position:relative;min-height:440px;background:linear-gradient(var(--bg),var(--paper))}
+#view canvas{display:block;width:100%;height:100%;position:absolute;inset:0}
+#view .hint{position:absolute;left:10px;bottom:8px;font:11px var(--f-mono);color:var(--muted);pointer-events:none}
+.ctrl{padding:14px;border-left:1px solid var(--line);display:grid;gap:12px;align-content:start;font-size:13px}
+@media (max-width:760px){.ctrl{border-left:0;border-top:1px solid var(--line)}}
+.ctrl label{display:grid;gap:3px}
+.ctrl label span{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.ctrl input[type=range]{width:100%;accent-color:var(--blue)}
+.ctrl select{font:inherit;padding:4px;background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+.readout{font:12px/1.6 var(--f-mono);border-top:1px dashed var(--line);padding-top:8px}
+.readout b{color:var(--blue);font-weight:500}
+.sheetmock{font:12px var(--f-mono);border-collapse:collapse;min-width:720px}
+.sheetmock td,.sheetmock th{border:1px solid var(--line);padding:4px 7px;white-space:nowrap}
+.sheetmock .in{background:var(--cell-in)} .sheetmock .calc{background:var(--cell-calc)} .sheetmock .fem{background:var(--cell-fem)}
+.sheetmock th{background:var(--bg);text-transform:none;letter-spacing:0}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font:12px var(--f-mono);color:var(--muted);margin:6px 0}
+.legend i{display:inline-block;width:14px;height:14px;border:1px solid var(--line);vertical-align:-2px;margin-right:6px}
+.qs{counter-reset:q;list-style:none;padding:0;display:grid;gap:10px}
+.qs li{counter-increment:q;background:var(--paper);border:1px solid var(--line);padding:10px 14px 10px 48px;position:relative;max-width:none}
+.qs li::before{content:"P" counter(q);position:absolute;left:12px;top:10px;font:600 13px var(--f-mono);color:var(--rust)}
+pre.mermaid{background:var(--paper);border:1px solid var(--line);padding:12px;overflow-x:auto}
+.formula{font:14px/1.7 var(--f-mono);background:var(--paper);border:1px solid var(--line);padding:10px 14px;overflow-x:auto;white-space:pre}
+footer{margin-top:40px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Fase 0 · Propuesta e investigación · noviembre 2026</div>
+  <h1>Torre 3D <span>CIRSOC</span>: investigación, diseño y plan de desarrollo</h1>
+  <p class="lede">Aplicación web didáctica para diseñar y calcular torres (edificios en altura, miradores escultóricos y torres reticuladas). La geometría es de forma libre, el motor FEM se verifica con métodos analíticos y cada número está sincronizado en ambos sentidos con un Google Sheets. La única fuente normativa es el CIRSOC; las normas extranjeras se usan solo como referencia comparativa.</p>
+  <div class="meta"><span>Plataforma: web (TypeScript + Three.js)</span><span>Usuario: estudiantes de arq./ing.</span><span>Análisis: FEM + verificación analítica (doble integración, Timoshenko)</span></div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Índice"><ol>
+  <li><a href="#decisiones">Decisiones tomadas</a></li>
+  <li><a href="#normas">Mapa normativo CIRSOC</a></li>
+  <li><a href="#investigacion">Investigación en GitHub</a></li>
+  <li><a href="#galeria">Galería de referentes</a></li>
+  <li><a href="#comerciales">Software comercial (solo ideas)</a></li>
+  <li><a href="#demo">Demo 3D de la propuesta</a></li>
+  <li><a href="#geometria">Motor geométrico</a></li>
+  <li><a href="#sistemas">Sistemas estructurales</a></li>
+  <li><a href="#motor">Motor de cálculo y verificación</a></li>
+  <li><a href="#sheets">Sincronización con Google Sheets</a></li>
+  <li><a href="#didactica">Didáctica e interfaz</a></li>
+  <li><a href="#arquitectura">Arquitectura de software</a></li>
+  <li><a href="#plan">Plan de desarrollo</a></li>
+  <li><a href="#legal">Copyright y licencias</a></li>
+  <li><a href="#preguntas">Preguntas abiertas</a></li>
+</ol></nav>
+
+<main>
+<!-- ============================================================ -->
+<section id="decisiones">
+<h2><span class="n">01</span>Decisiones tomadas</h2>
+<div class="tbl"><table>
+<thead><tr><th>Tema</th><th>Decisión</th><th>Consecuencia para el diseño</th></tr></thead>
+<tbody>
+<tr><td>Tipologías</td><td>Edificio en altura, torre mirador/escultórica y torre reticulada/antena</td><td>Un único modelo de datos con tres <em>plantillas</em>. Las tres comparten el motor de barras 3D. Los edificios agregan láminas (tabiques, núcleo y losas como diafragma) y las reticuladas agregan el módulo CIRSOC 306.</td></tr>
+<tr><td>Plataforma</td><td>Web en navegador</td><td>TypeScript, Three.js y un solver en un Web Worker. Sin instalación y con funcionamiento offline (PWA). Conexión directa a Google Sheets API.</td></tr>
+<tr><td>Análisis</td><td>FEM asistido, verificado analíticamente con doble integración (Euler-Bernoulli) y viga de Timoshenko</td><td>Cada resultado FEM global se contrasta con un modelo de viga en voladizo equivalente que se calcula fila por fila (piso por piso) en el Sheets. La app muestra el error % entre ambos.</td></tr>
+<tr><td>Usuario</td><td>Estudiantes</td><td>Cada número tiene tres capas: <em>qué es</em>, <em>cómo se calcula</em> (con los valores reemplazados) y <em>dónde lo pide el CIRSOC</em> (solo la referencia al artículo, sin el texto).</td></tr>
+<tr><td>Normativa</td><td>Solo manuales CIRSOC</td><td>Se descarta la planilla de cátedra. Los coeficientes y las tablas los carga el usuario desde su propia copia del CIRSOC en el Sheets (ver <a href="#legal">licencias</a>).</td></tr>
+</tbody></table></div>
+</section>
+
+<!-- ============================================================ -->
+<section id="normas">
+<h2><span class="n">02</span>Mapa normativo CIRSOC → módulos</h2>
+<p>Cada reglamento se convierte en un módulo con entradas, salidas y referencias de artículo. Las ediciones están sujetas a confirmación. La Resolución 11/2026 pidió la vigencia legal de los CIRSOC <b>101-2025, 102-2025, 200-2024 y 201-2025</b>. Sobre las ediciones vigentes del 103, 301 y 306 no encontré una confirmación oficial actualizada (ver <a href="#preguntas">P1</a>).</p>
+<div class="tbl"><table>
+<thead><tr><th>Reglamento</th><th>Módulo de la app</th><th>Qué calcula</th><th>Fase</th></tr></thead>
+<tbody>
+<tr><td>CIRSOC 101-2025</td><td><code>cargas/gravitatorias</code></td><td>Cargas permanentes D y sobrecargas L por uso y piso, reducción de sobrecarga</td><td>F4</td></tr>
+<tr><td>CIRSOC 102-2025</td><td><code>cargas/viento</code></td><td>Velocidad básica por zona, exposición, K<sub>z</sub>, K<sub>zt</sub>, K<sub>d</sub>, factor de ráfaga G (rígida o flexible, f<sub>1</sub> &lt; 1 Hz), presiones por cara del perfil variable</td><td>F4</td></tr>
+<tr><td>INPRES-CIRSOC 103 (Parte I general; II hormigón; IV acero)</td><td><code>cargas/sismo</code></td><td>Zona, suelo, espectro de diseño, R/factor de ductilidad, método estático y modal espectral, distorsiones de piso, P-Δ, torsión accidental</td><td>F4–F5</td></tr>
+<tr><td>CIRSOC 200-2024 (a confirmar alcance)</td><td><code>bases</code></td><td>Se integrará cuando definamos qué aporta (¿bases de cálculo, combinaciones?)</td><td>F4</td></tr>
+<tr><td>CIRSOC 201-2025</td><td><code>diseño/hormigon</code></td><td>Combinaciones, φ, flexo-compresión biaxial de pilares de forma libre, corte, tabiques (incluidos los curvos), esbeltez</td><td>F7</td></tr>
+<tr><td>CIRSOC 301 / 302 / 303</td><td><code>diseño/acero</code></td><td>Tracción, compresión con pandeo, flexión, interacción para el exoesqueleto, el diagrid y las reticuladas; tubos (302)</td><td>F7</td></tr>
+<tr><td>CIRSOC 306</td><td><code>tipologia/reticulada</code></td><td>Viento sobre reticulados (solidez, coeficientes de arrastre por tramo), verificación de montantes, diagonales y riendas</td><td>F8</td></tr>
+<tr><td>CIRSOC 104 / 108</td><td><code>cargas/otras</code></td><td>Nieve y hielo (relevante para antenas y miradores en zonas frías)</td><td>F8</td></tr>
+</tbody></table></div>
+<div class="callout"><strong>Normas extranjeras: solo como espejo</strong>Eurocódigo, ACI, AISC y ASCE 7 sirven para dos cosas: ejemplos resueltos que validan el motor numérico y una vista didáctica "¿cómo lo resuelve otro país?". Nunca alimentan una verificación oficial.</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="investigacion">
+<h2><span class="n">03</span>Investigación en GitHub</h2>
+<p>Busqué por temas (análisis estructural, FEM, Timoshenko, edificios altos, diagrid, outrigger, torres reticuladas, CIRSOC, geometría paramétrica, sincronización con Sheets) y leí los README de los proyectos más relevantes. La columna <b>Uso</b> indica qué permite la licencia:</p>
+<div class="legend"><span><span class="tag dep">dependencia</span> se puede usar como librería (MIT/BSD/Apache)</span><span><span class="tag idea">idea</span> solo conceptos, no se copia código (GPL/AGPL/LGPL o sin licencia)</span><span><span class="tag ref">validación</span> se usa como referencia para contrastar resultados</span></div>
+
+<h3>Motores FEM y análisis estructural</h3>
+<div class="tbl"><table>
+<thead><tr><th>Proyecto</th><th>Licencia · lenguaje</th><th>Qué aprendemos</th><th>Uso</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/madil4/awatif">madil4/awatif</a> ★192</td><td>MIT · TS</td><td>Pórticos 3D en el navegador. Tiene <b>dos solvers con el mismo resultado</b>: uno C++/WASM rápido y otro en TypeScript legible "de referencia". Es la idea central de nuestra didáctica: el solver legible es el que se enseña.</td><td><span class="tag dep">dependencia</span> <span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/jpreyes/portico-core">jpreyes/portico-core</a></td><td>AGPL-3.0 · JS</td><td>Barras <b>Timoshenko 3D de 12 GDL</b>, láminas, diafragma rígido, zonas rígidas, modal, espectral (CQC/SRSS), P-Δ, pandeo y pushover. Incluye un <b>manual de verificación con 18 casos</b> y control de equilibrio ΣR = ΣP en cada modelo. Su núcleo es agnóstico de norma y cada país es un <em>preset</em> opcional (el modelo para nuestro "preset CIRSOC").</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/tiveor/struxure">tiveor/struxure</a></td><td>Apache-2.0 · TS</td><td>Solver en un Web Worker cancelable, diagramas de esfuerzos en "cinta" 3D, mapa de calor D/C, secciones extruidas, importación DXF/IFC y una plantilla de torre reticulada. Su <code>validation.md</code> dice con honestidad qué está verificado y qué no.</td><td><span class="tag dep">dependencia</span> <span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/banyaattila-crypto/FEMAti">banyaattila-crypto/FEMAti</a></td><td>MIT · TS</td><td>Viga <b>Timoshenko</b> elastoplástica con integración reducida selectiva (contra el bloqueo por corte). <b>Cada fórmula está trazada a página y ecuación</b> de la fuente. Tiene menú "Theory" y modo histórico animado del solver. Es nuestro modelo para "cada fórmula → artículo CIRSOC".</td><td><span class="tag dep">dependencia</span> <span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/JWock82/Pynite">JWock82/Pynite</a> ★786</td><td>MIT · Python</td><td>Pórticos 3D, placas DKMQ, objeto <b>"ShearWall"</b> con fuerzas de pilar y viga de acople, elementos solo tracción, modal y diagramas por barra. Sirve como <b>verificador independiente</b> (corre en Python o Pyodide).</td><td><span class="tag ref">validación</span> <span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/mhaseebmohal/structural-frame-analysis">mhaseebmohal/structural-frame-analysis</a></td><td>MIT · JS</td><td>Rigidez directa 2D/3D, P-Δ, modos y espectro en el navegador. Las pruebas automáticas comparan lineal, P-Δ y modal con soluciones cerradas.</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/OpenAEC-Foundation/open-fem-studio-mechanics">OpenAEC/open-fem-studio-mechanics</a></td><td>AGPL-3.0 · TS</td><td>Láminas para losas y tabiques, paneles de carga que reparten a vigas, diagonales solo tracción, barras de sección variable y asistentes ("wizards") que generan estructuras completas.</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/OpenSees/OpenSees">OpenSees</a> / <a href="https://github.com/peer-open-source/xara">xara</a></td><td>BSD-like · C++/Py</td><td>Referencia académica para no linealidad y dinámica. <a href="https://github.com/yexiang92/opstool">opstool</a> (GPL) muestra buena visualización.</td><td><span class="tag ref">validación</span></td></tr>
+<tr><td><a href="https://github.com/anastruct/anaStruct">anaStruct</a> ★474</td><td>LGPL-3.0 · Python</td><td>API 2D muy simple y didáctica. Buenos ejemplos de diagramas.</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/xcfem/xc">xcfem/xc</a> ★395</td><td>GPL-3.0 · C++/Py</td><td>FEM para obras civiles con verificaciones normativas y uniones.</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/FEAScript/FEAScript-core">FEAScript</a></td><td>MIT · JS</td><td>FEM genérico en JS. Útil para mallas 2D de secciones y torsión.</td><td><span class="tag dep">dependencia</span></td></tr>
+</tbody></table></div>
+
+<h3>Secciones de forma libre y diseño de hormigón</h3>
+<div class="tbl"><table>
+<thead><tr><th>Proyecto</th><th>Licencia</th><th>Qué aprendemos</th><th>Uso</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/robbievanleeuwen/section-properties">section-properties</a> ★571</td><td>MIT · Python</td><td>Propiedades de <b>cualquier sección</b> por FEM: A, I, J de torsión, alabeo, centro de corte y áreas de corte (κ para Timoshenko). Es el referente para los pilares de forma libre.</td><td><span class="tag ref">validación</span> <span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/robbievanleeuwen/concrete-properties">concrete-properties</a></td><td>MIT · Python</td><td>Diagramas de interacción P-M y biaxiales, momento-curvatura y sección fisurada para secciones de hormigón arbitrarias.</td><td><span class="tag ref">validación</span> <span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/fib-international/structuralcodes">fib/structuralcodes</a></td><td>Apache-2.0 · Python</td><td><b>Arquitectura de "código de diseño" desacoplada</b>: materiales, leyes constitutivas y verificaciones por norma como módulos intercambiables. Es un patrón para <code>diseño/cirsoc201</code>.</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/ccaprani/pycba">pycba</a></td><td>AGPL-3.0</td><td>Vigas continuas y líneas de influencia, con enfoque didáctico.</td><td><span class="tag idea">idea</span></td></tr>
+</tbody></table></div>
+
+<h3>Torres, sistemas de altura y normativa argentina</h3>
+<div class="tbl"><table>
+<thead><tr><th>Proyecto</th><th>Licencia</th><th>Qué aprendemos</th><th>Uso</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/efdiloreto/ZondaPro">efdiloreto/ZondaPro</a></td><td>GPL-3.0 · Python/Qt</td><td>Viento <b>CIRSOC 102-2025</b> con mapa 3D de presiones por zona, SPRFV y C&amp;R, y reporte PDF. Es el referente argentino más cercano. Solo tomamos ideas de UX; los valores los contrastamos como validación.</td><td><span class="tag idea">idea</span> <span class="tag ref">validación</span></td></tr>
+<tr><td><a href="https://github.com/benyaminrazaziyan-afk/tall_building_v4_outrigger.app">tall_building outrigger</a></td><td>MIT · Python</td><td>Modelo MDOF de predimensionado con <b>núcleo y outrigger</b>: la rigidez del outrigger entra como matriz acoplada. Calcula períodos, espectro, derivas y ahusamiento racional de elementos con la altura.</td><td><span class="tag idea">idea</span> <span class="tag ref">validación</span></td></tr>
+<tr><td><a href="https://github.com/munah-a/diagrid-viewer">munah-a/diagrid-viewer</a></td><td>MIT · TS</td><td>Diagrid 3D en Three.js, "ring connect" por niveles, secciones tubulares CHS y benchmarks FEM automáticos.</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/retug/parametric-etabs-tower">retug/parametric-etabs-tower</a>, <a href="https://github.com/ekimroyrp/251108_ParametricTower">ParametricTower</a>, <a href="https://github.com/ramon-garcia-ayala/Hyperbuilder">Hyperbuilder</a></td><td>varias</td><td>Geometría paramétrica de torres en Three.js (plantas, giro, grilla de columnas) y puente a software comercial.</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td>Repos CIRSOC menores (<a href="https://github.com/anibalmieres/cirsoc301">cirsoc301</a>, <a href="https://github.com/agustdiez/cirsoc301">agustdiez/cirsoc301</a>, <a href="https://github.com/federicoarielcasado/py-concrete-calc">py-concrete-calc</a>)</td><td>varias / sin licencia</td><td>Muestran demanda local de verificadores 301/201. No hay ningún proyecto abierto que integre torre + FEM + CIRSOC: <b>ese es nuestro hueco</b>.</td><td><span class="tag idea">idea</span></td></tr>
+</tbody></table></div>
+
+<h3>Geometría, 3D, fórmulas y hojas de cálculo</h3>
+<div class="tbl"><table>
+<thead><tr><th>Proyecto</th><th>Licencia</th><th>Para qué</th><th>Uso</th></tr></thead>
+<tbody>
+<tr><td><a href="https://github.com/mrdoob/three.js">three.js</a></td><td>MIT</td><td>Visor 3D: <code>ExtrudeGeometry</code>, <code>Shape</code> con arcos, <code>LatheGeometry</code> (revolución), <code>TubeGeometry</code> (barrido)</td><td><span class="tag dep">dependencia</span></td></tr>
+<tr><td><a href="https://github.com/jsxgraph/jsxgraph">JSXGraph</a></td><td>LGPL-3.0 / MIT</td><td>Construcciones geométricas interactivas: <b>compás</b>, arcos por 3 puntos, intersecciones y restricciones. Base del bocetador 2D de plantas y pilares.</td><td><span class="tag dep">dependencia</span></td></tr>
+<tr><td><a href="https://github.com/elalish/manifold">manifold</a> / <a href="https://github.com/gkjohnson/three-bvh-csg">three-bvh-csg</a></td><td>Apache / MIT</td><td>Booleanas robustas (vanos en tabiques curvos, núcleos con aberturas)</td><td><span class="tag dep">dependencia</span></td></tr>
+<tr><td><a href="https://github.com/ThatOpen/engine_components">That Open Engine</a> / <a href="https://github.com/IfcOpenShell/IfcOpenShell">IfcOpenShell</a></td><td>MIT / LGPL</td><td>Exportar e importar IFC (BIM) desde el navegador</td><td><span class="tag dep">dependencia</span></td></tr>
+<tr><td><a href="https://github.com/handsontable/hyperformula">HyperFormula</a></td><td>GPL-3.0 o comercial</td><td>Motor de fórmulas compatible con Excel/Sheets sin interfaz. Evalúa en la app <b>la misma fórmula</b> que vive en el Sheets. La licencia exige GPL o licencia paga; la alternativa es un evaluador propio de un subconjunto de funciones.</td><td><span class="tag idea">idea</span> (ver P6)</td></tr>
+<tr><td><a href="https://github.com/josdejong/mathjs">math.js</a> · <a href="https://github.com/KaTeX/KaTeX">KaTeX</a></td><td>Apache · MIT</td><td>Unidades, álgebra y matrices; renderizado de fórmulas paso a paso</td><td><span class="tag dep">dependencia</span></td></tr>
+<tr><td><a href="https://github.com/compas-dev/compas">COMPAS</a></td><td>MIT · Python</td><td>Estructuras de datos de mallas y geometría para arquitectura, y form-finding</td><td><span class="tag idea">idea</span></td></tr>
+<tr><td><a href="https://github.com/rsheyd/google-docs-markdown-sync">google-docs-markdown-sync</a></td><td>MIT</td><td>Patrón de sincronización bidireccional Sheets ↔ archivos</td><td><span class="tag idea">idea</span></td></tr>
+</tbody></table></div>
+</section>
+
+<!-- ============================================================ -->
+<section id="galeria">
+<h2><span class="n">04</span>Galería de referentes</h2>
+<p>Capturas tomadas de los repositorios públicos, redistribuidas según su licencia y con atribución. Son imágenes de otros proyectos, no de nuestra app.</p>
+<div class="gallery">
+<figure><img src="img/portico-viewport.jpg" alt="PORTICO: edificio de 3 pisos en 3D con diagramas de momento y tabla de esfuerzos" loading="lazy"><figcaption><b>PORTICO</b>: visor 3D con Mz por barra y tabla de esfuerzos por elemento. Pestañas Modal, Static, Pushover y Dynamic. <span class="pill">jpreyes/portico-core · AGPL-3.0</span></figcaption></figure>
+<figure><img src="img/portico-design.jpg" alt="PORTICO: verificación de diseño" loading="lazy"><figcaption><b>PORTICO</b>: verificación de diseño multinorma por presets de país. <span class="pill">AGPL-3.0</span></figcaption></figure>
+<figure><img src="img/femati-hero.jpg" alt="FEM@ti: viga continua con rótula plástica y diagrama de momento" loading="lazy"><figcaption><b>FEM@ti</b>: viga Timoshenko con rótula plástica, árbol de modelo y pestañas M, T, w, φ, convergencia y modal. Es el estilo didáctico que buscamos. <span class="pill">banyaattila-crypto/FEMAti · MIT</span></figcaption></figure>
+<figure><img src="img/femati-section.jpg" alt="FEM@ti: catálogo de secciones con fórmulas" loading="lazy"><figcaption><b>FEM@ti</b>: cada propiedad de sección muestra la fórmula cerrada que la produce. <span class="pill">MIT</span></figcaption></figure>
+<figure><img src="img/struxure-cristo.jpg" alt="Struxure: torre reticulada en 3D" loading="lazy"><figcaption><b>Struxure</b>: plantilla de torre reticulada (88 barras) y panel de visualización. <span class="pill">tiveor/struxure · Apache-2.0</span></figcaption></figure>
+<figure><img src="img/struxure-forces.jpg" alt="Struxure: diagrama de momentos en pórtico" loading="lazy"><figcaption><b>Struxure</b>: diagramas de momento con valores y escala ajustable. <span class="pill">Apache-2.0</span></figcaption></figure>
+<figure><img src="img/struxure-sections.jpg" alt="Struxure: secciones extruidas en 3D" loading="lazy"><figcaption><b>Struxure</b>: alternar entre alambre y sección extruida real. <span class="pill">Apache-2.0</span></figcaption></figure>
+<figure><img src="img/zonda-sprfv.jpg" alt="Zonda: presiones de viento CIRSOC 102 en 3D" loading="lazy"><figcaption><b>Zonda</b>: presiones de viento CIRSOC 102 mapeadas en 3D sobre el edificio (SPRFV). <span class="pill">efdiloreto/ZondaPro · GPL-3.0</span></figcaption></figure>
+<figure><img src="img/zonda-entrada.jpg" alt="Zonda: datos de entrada" loading="lazy"><figcaption><b>Zonda</b>: formulario de entrada de datos del CIRSOC 102. <span class="pill">GPL-3.0</span></figcaption></figure>
+<figure><img src="img/zonda-reporte.jpg" alt="Zonda: reporte" loading="lazy"><figcaption><b>Zonda</b>: reporte con índice y detalle por zona. <span class="pill">GPL-3.0</span></figcaption></figure>
+<figure><img src="img/ofs-slab.jpg" alt="Open FEM Studio: momentos en losa" loading="lazy"><figcaption><b>Open FEM Studio</b>: momentos m<sub>xx</sub> en losas con elementos lámina. <span class="pill">AGPL-3.0</span></figcaption></figure>
+<figure><img src="img/ofs-braced.jpg" alt="Open FEM Studio: pórtico arriostrado 2D" loading="lazy"><figcaption><b>Open FEM Studio</b>: diagonales solo tracción que "salen" del modelo al comprimirse. <span class="pill">AGPL-3.0</span></figcaption></figure>
+<figure><img src="img/adapy-beam.jpg" alt="adapy: viga FEM visualizada" loading="lazy"><figcaption><b>adapy</b>: viga FEM exportada y vista en ParaView, con flujo IFC → FEM. <span class="pill">Krande/adapy · GPL-3.0</span></figcaption></figure>
+<figure><img src="img/xc-connection.jpg" alt="XC: factor de capacidad de unión" loading="lazy"><figcaption><b>XC</b>: factor de capacidad en una unión metálica (CBFEM). <span class="pill">xcfem/xc · GPL-3.0</span></figcaption></figure>
+<figure><img src="img/portico-section.jpg" alt="PORTICO: editor de sección" loading="lazy"><figcaption><b>PORTICO</b>: editor de sección. <span class="pill">AGPL-3.0</span></figcaption></figure>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="comerciales">
+<h2><span class="n">05</span>Software comercial y privado: solo ideas</h2>
+<p>El código privado no es público, así que no se puede (ni se debe) leer ni copiar. Lo que sí podemos usar es lo que esos productos <b>describen públicamente</b> como funcionalidades: las ideas y los métodos no están protegidos por derecho de autor. No incluyo capturas de estos productos porque sus imágenes sí están protegidas. Cada nombre lleva a la página pública del fabricante.</p>
+<div class="cards">
+<div class="card"><h4>ETABS (CSI)</h4><p>Modelado por <b>pisos</b>, diafragmas automáticos, etiquetas "pier/spandrel" para tabiques y cargas laterales automáticas por norma. → Nuestro "árbol de niveles" y el objeto Tabique con esfuerzos integrados.</p></div>
+<div class="card"><h4>Midas Gen</h4><p><b>Análisis por etapas constructivas</b> y acortamiento diferencial de columnas en torres altas. → Fase avanzada F9, muy didáctico.</p></div>
+<div class="card"><h4>Karamba3D (Grasshopper)</h4><p>FEM <b>paramétrico en tiempo real</b>: se cambia la forma y el resultado se actualiza al instante. → Nuestro modo "boceto vivo" con análisis rápido.</p></div>
+<div class="card"><h4>RFEM / RSTAB + RWIND (Dlubal)</h4><p>Túnel de viento digital (CFD) que genera cargas sobre formas complejas. → Para torres escultóricas: aviso didáctico de cuándo el CIRSOC 102 exige túnel de viento o un estudio especial.</p></div>
+<div class="card"><h4>CYPECAD</h4><p>Ya implementa INPRES-CIRSOC 103 (anunciado públicamente). → Referencia profesional local para validar órdenes de magnitud de cortes basales.</p></div>
+<div class="card"><h4>Tekla / Revit / Robot</h4><p>Separación entre <b>modelo físico y modelo analítico</b> con ejes, offsets y uniones rígidas. → Nuestro generador "geometría → modelo analítico" visible para el alumno.</p></div>
+<div class="card"><h4>SOFiSTiK / SAP2000</h4><p>Láminas de alto orden, pandeo global, P-Δ y modal con masa participante. → Checklist de funcionalidades del motor.</p></div>
+<div class="card"><h4>Grasshopper</h4><p>Programación visual por nodos. → Vista opcional "grafo de cálculo": ver cómo cada parámetro fluye hasta la verificación.</p></div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="demo">
+<h2><span class="n">06</span>Demo 3D de la propuesta</h2>
+<p>Esta es una maqueta interactiva de nuestra aplicación, no un cálculo. Muestra el tipo de control paramétrico que proponemos: perfil de torre variable (ahusamiento, panza, giro), planta libre, núcleo con tabique en arco y tres sistemas estructurales. Arrastrá para orbitar.</p>
+<div class="demo">
+  <div id="view"><div class="hint">arrastrar: orbitar · rueda: zoom</div></div>
+  <div class="ctrl">
+    <label for="d-floors"><span>Pisos <b id="o-floors">40</b></span><input id="d-floors" type="range" min="10" max="80" value="40"></label>
+    <label for="d-plan"><span>Planta</span>
+      <select id="d-plan"><option value="ellipse">Elíptica</option><option value="rect">Rectangular redondeada</option><option value="tri">Triangular curva</option><option value="free">Libre (polilínea + arcos)</option></select></label>
+    <label for="d-taper"><span>Escala en coronamiento <b id="o-taper">0.70</b></span><input id="d-taper" type="range" min="0.3" max="1.3" step="0.01" value="0.70"></label>
+    <label for="d-bulge"><span>Panza a media altura <b id="o-bulge">0.15</b></span><input id="d-bulge" type="range" min="-0.3" max="0.4" step="0.01" value="0.15"></label>
+    <label for="d-twist"><span>Giro total <b id="o-twist">90°</b></span><input id="d-twist" type="range" min="0" max="180" step="1" value="90"></label>
+    <label for="d-sys"><span>Sistema estructural</span>
+      <select id="d-sys"><option value="exo">Exoesqueleto diagrid</option><option value="outrigger">Núcleo + outriggers + columnas</option><option value="tube">Tubo aporticado</option></select></label>
+    <div class="readout" id="readout"></div>
+  </div>
+</div>
+<p class="pill">Three.js r128 · la app real usaría la misma geometría para generar nodos y barras del modelo analítico.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="geometria">
+<h2><span class="n">07</span>Motor geométrico: forma libre de verdad</h2>
+<h3>7.1 Bocetador 2D de plantas y secciones</h3>
+<p>Un mismo bocetador sirve para dibujar <b>plantas de piso</b>, <b>pilares de forma libre</b> y <b>tabiques curvos</b>. Herramientas previstas:</p>
+<ul>
+<li><b>Polilínea</b> con segmentos rectos y <b>bulge</b> (segmento de arco, como en DXF).</li>
+<li><b>Compás</b>: arco por centro + radio + ángulos, o arco por 3 puntos.</li>
+<li><b>Spline</b> (B-spline o Catmull-Rom) que se convierte en polilínea fina para el cálculo. Si con "spin line" te referías a otra herramienta, ver <a href="#preguntas">P3</a>.</li>
+<li><b>Revolución y barrido</b> (lathe/sweep) para pilares cuya sección cambia con la altura o para torres de revolución.</li>
+<li>Restricciones: tangencia, simetría, cotas paramétricas (que viven como celdas del Sheets).</li>
+</ul>
+<figure>
+<div class="svgbox"><svg viewBox="0 0 900 340" role="img" aria-label="Bocetador de pilar de forma libre con polilínea, arco de compás y spline, mostrando baricentro, ejes principales y tabla de propiedades">
+  <rect x="0" y="0" width="900" height="340" fill="var(--paper)"/>
+  <g stroke="var(--line)" stroke-width="1">
+    <path d="M20 40H520M20 80H520M20 120H520M20 160H520M20 200H520M20 240H520M20 280H520M20 320H520"/>
+    <path d="M60 20V330M100 20V330M140 20V330M180 20V330M220 20V330M260 20V330M300 20V330M340 20V330M380 20V330M420 20V330M460 20V330M500 20V330"/>
+  </g>
+  <!-- sección libre: polilínea + arco + spline -->
+  <path d="M100 280 L100 120 A 120 120 0 0 1 300 60 C 380 60 460 120 440 200 L 380 280 Z" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="2.5"/>
+  <!-- compás -->
+  <circle cx="220" cy="180" r="3" fill="var(--rust)"/>
+  <path d="M220 180 L100 120" stroke="var(--rust)" stroke-dasharray="4 4" fill="none"/>
+  <text x="140" y="168" font-size="11" fill="var(--rust)">R (compás)</text>
+  <!-- vértices -->
+  <g fill="var(--paper)" stroke="var(--blue)" stroke-width="2">
+    <rect x="96" y="276" width="8" height="8"/><rect x="96" y="116" width="8" height="8"/><rect x="296" y="56" width="8" height="8"/><rect x="436" y="196" width="8" height="8"/><rect x="376" y="276" width="8" height="8"/>
+  </g>
+  <circle cx="380" cy="60" r="4" fill="var(--rust)"/><circle cx="460" cy="120" r="4" fill="var(--rust)"/>
+  <path d="M300 60 L380 60 M440 200 L460 120" stroke="var(--rust)" stroke-width="1" fill="none"/>
+  <!-- baricentro y ejes principales -->
+  <g transform="translate(272 182) rotate(-18)">
+    <path d="M-150 0 H150" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="8 4"/>
+    <path d="M0 -120 V120" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="8 4"/>
+    <text x="152" y="-4" font-size="12" fill="var(--ink)">1</text><text x="4" y="-122" font-size="12" fill="var(--ink)">2</text>
+  </g>
+  <circle cx="272" cy="182" r="6" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M266 182h12M272 176v12" stroke="var(--ink)"/>
+  <text x="282" y="200" font-size="12" fill="var(--ink)">G</text>
+  <text x="40" y="24" font-size="12" fill="var(--muted)">Bocetador · pilar P-07 · escala 1:20</text>
+  <!-- paleta -->
+  <g font-size="12" fill="var(--ink)">
+    <rect x="540" y="20" width="340" height="300" fill="var(--bg)" stroke="var(--line)"/>
+    <text x="556" y="44" font-weight="600">Herramientas</text>
+    <text x="556" y="66" fill="var(--blue)">▭ Polilínea   ◜ Arco 3 pts   ◯ Compás</text>
+    <text x="556" y="86" fill="var(--blue)">∿ Spline      ⟲ Revolución  ⇢ Barrido</text>
+    <text x="556" y="118" font-weight="600">Propiedades (Green, exacto en arcos)</text>
+    <text x="556" y="140">A    = 2.414 m²          → Hoja 03!C12</text>
+    <text x="556" y="160">x̄, ȳ = 4.31 m, 3.27 m</text>
+    <text x="556" y="180">I₁   = 0.982 m⁴   I₂ = 0.511 m⁴</text>
+    <text x="556" y="200">θ    = −18.0°   (ejes principales)</text>
+    <text x="556" y="220">J    = 0.704 m⁴   (FEM de sección)</text>
+    <text x="556" y="240">κ₂   = 0.84     (área de corte)</text>
+    <text x="556" y="270" fill="var(--muted)">Valores de ejemplo, no son un cálculo real</text>
+    <text x="556" y="300" fill="var(--rust)">¿Cómo se calcula A? → ver paso a paso</text>
+  </g>
+</svg></div>
+<figcaption><b>Propuesta · bocetador de pilar de forma libre.</b> Los contornos son exactos (rectas + arcos): A, baricentro e inercias se calculan con el teorema de Green en forma cerrada por segmento (también reproducible en el Sheets). J y κ (área de corte para Timoshenko) requieren FEM de sección, inspirado en section-properties.</figcaption>
+</figure>
+
+<h3>7.2 Torre de perfil variable</h3>
+<p>La torre no es un prisma: es una <b>pila de plantas generadas por funciones de la altura</b>. Cada función es una columna del Sheets, así el alumno ve cómo cambia la planta en cada nivel:</p>
+<div class="formula">Planta(z) = T( z ) · R( θ(z) ) · S( s(z) ) · Morph( Planta_A, Planta_B, t(z) )
+
+  s(z)  escala      p.ej. s = 1 + (s_top − 1)·ζ + b·sin(π·ζ)      ζ = z / H
+  θ(z)  giro        p.ej. θ = θ_total · ζ            (torsión de forma)
+  T(z)  traslación  inclinación / desplome
+  t(z)  interpolación entre dos plantas llave (p.ej. cuadrado → círculo)
+  + retranqueos por tramos (setbacks) y plantas técnicas</div>
+<p>También se podrá dibujar el <b>perfil de elevación</b> directamente con el bocetador (silueta), y la app deriva s(z) de ese dibujo.</p>
+
+<h3>7.3 Tabique con forma de arco circular</h3>
+<figure>
+<div class="svgbox"><svg viewBox="0 0 900 300" role="img" aria-label="Tabique curvo en arco circular: radio, espesor, ángulo y fórmulas de propiedades">
+  <rect width="900" height="300" fill="var(--paper)"/>
+  <g transform="translate(220 250)">
+    <path d="M -150 0 A 180 180 0 0 1 150 0" transform="translate(0,-98) scale(1)" fill="none" stroke="var(--line)"/>
+    <path d="M -155.9 -90 A 180 180 0 0 1 155.9 -90 L 138.6 -80 A 160 160 0 0 0 -138.6 -80 Z" fill="var(--rust-soft)" stroke="var(--rust)" stroke-width="2"/>
+    <circle cx="0" cy="0" r="3" fill="var(--ink)"/><text x="6" y="14" font-size="12" fill="var(--ink)">O</text>
+    <path d="M0 0 L155.9 -90" stroke="var(--ink)" stroke-dasharray="4 4"/>
+    <path d="M0 0 L-155.9 -90" stroke="var(--ink)" stroke-dasharray="4 4"/>
+    <path d="M 0 -60 A 60 60 0 0 1 52 -30" fill="none" stroke="var(--blue)"/><text x="36" y="-52" font-size="12" fill="var(--blue)">α</text>
+    <text x="70" y="-36" font-size="12" fill="var(--ink)">R</text>
+    <text x="-30" y="-182" font-size="12" fill="var(--rust)">t (espesor)</text>
+    <circle cx="0" cy="-139" r="4" fill="var(--blue)"/><text x="8" y="-134" font-size="12" fill="var(--blue)">G</text>
+  </g>
+  <g font-size="13" fill="var(--ink)">
+    <text x="440" y="50" font-weight="600">Tabique en arco (ángulo total 2α, radio medio R, espesor t)</text>
+    <text x="440" y="80">A   = 2·α·R·t</text>
+    <text x="440" y="104">ȳ   = R·sin(α)/α              (desde O)</text>
+    <text x="440" y="128">Iₓ₀ = R³t·(α + sinα·cosα)      (respecto de O, t ≪ R)</text>
+    <text x="440" y="152">I_y = R³t·(α − sinα·cosα)</text>
+    <text x="440" y="176">Iₓ  = Iₓ₀ − A·ȳ²               (Steiner al baricentro)</text>
+    <text x="440" y="208" fill="var(--muted)">Modelo FEM: lámina curva (malla de cuadriláteros)</text>
+    <text x="440" y="228" fill="var(--muted)">o barra equivalente en G + vínculos rígidos a la losa</text>
+    <text x="440" y="258" fill="var(--rust)">El centro de corte cae del lado cóncavo, fuera</text>
+    <text x="440" y="278" fill="var(--rust)">del tabique: hay torsión aunque la carga pase por G</text>
+  </g>
+</svg></div>
+<figcaption><b>Propuesta · tabique curvo.</b> Las fórmulas de pared delgada se verifican en el Sheets y se contrastan con el cálculo exacto por Green (arcos de radios R ± t/2). En el FEM, el tabique se modela como lámina; la versión "barra equivalente" se usa en la verificación analítica.</figcaption>
+</figure>
+</section>
+
+<!-- ============================================================ -->
+<section id="sistemas">
+<h2><span class="n">08</span>Sistemas estructurales contemplados</h2>
+<p>Cada sistema es un <b>generador</b>: toma la geometría de la torre y produce barras y láminas. Además tiene un <b>modelo analítico simplificado</b> para la verificación y una <b>ficha didáctica</b> (cómo trabaja, camino de cargas, alturas típicas).</p>
+<figure>
+<div class="svgbox"><svg viewBox="0 0 900 260" role="img" aria-label="Elevaciones esquemáticas de diez sistemas estructurales para torres">
+  <rect width="900" height="260" fill="var(--paper)"/>
+  <g fill="none" stroke-width="1.6">
+    <!-- 1 pórtico -->
+    <g transform="translate(20 20)" stroke="var(--ink)"><path d="M10 190V10M40 190V10M70 190V10M10 10H70M10 40H70M10 70H70M10 100H70M10 130H70M10 160H70"/></g>
+    <!-- 2 tabiques -->
+    <g transform="translate(110 20)"><path d="M10 190V10M70 190V10M10 10H70M10 40H70M10 70H70M10 100H70M10 130H70M10 160H70" stroke="var(--ink)"/><rect x="32" y="10" width="16" height="180" fill="var(--rust-soft)" stroke="var(--rust)"/></g>
+    <!-- 3 núcleo -->
+    <g transform="translate(200 20)"><path d="M5 190V10M75 190V10M5 10H75M5 40H75M5 70H75M5 100H75M5 130H75M5 160H75" stroke="var(--ink)"/><rect x="28" y="10" width="24" height="180" fill="var(--rust-soft)" stroke="var(--rust)"/></g>
+    <!-- 4 tubo aporticado -->
+    <g transform="translate(290 20)" stroke="var(--ink)"><path d="M5 190V10M17 190V10M29 190V10M41 190V10M53 190V10M65 190V10M77 190V10"/><path d="M5 10H77M5 30H77M5 50H77M5 70H77M5 90H77M5 110H77M5 130H77M5 150H77M5 170H77"/></g>
+    <!-- 5 tubo arriostrado -->
+    <g transform="translate(380 20)" stroke="var(--ink)"><path d="M5 190V10M75 190V10M5 10H75M5 70H75M5 130H75M5 190L75 130L5 70L75 10M75 190L5 130L75 70L5 10"/></g>
+    <!-- 6 outrigger -->
+    <g transform="translate(470 20)"><path d="M5 190V10M75 190V10M5 10H75M5 40H75M5 70H75M5 100H75M5 130H75M5 160H75" stroke="var(--ink)"/><rect x="31" y="10" width="18" height="180" fill="var(--rust-soft)" stroke="var(--rust)"/><path d="M5 70L31 55M5 55L31 70M49 55L75 70M49 70L75 55M5 145L31 130M5 130L31 145M49 130L75 145M49 145L75 130" stroke="var(--blue)" stroke-width="2"/><path d="M5 55H31M5 70H31M49 55H75M49 70H75M5 130H31M5 145H31M49 130H75M49 145H75" stroke="var(--blue)" stroke-width="2"/></g>
+    <!-- 7 diagrid -->
+    <g transform="translate(560 20)" stroke="var(--blue)"><path d="M5 190L23 145L41 190L59 145L77 190M5 145L23 100L41 145L59 100L77 145M5 100L23 55L41 100L59 55L77 100M5 55L23 10L41 55L59 10L77 55M5 190V10M77 190V10"/></g>
+    <!-- 8 exoesqueleto -->
+    <g transform="translate(650 20)"><path d="M14 190V10M66 190V10M14 10H66M14 40H66M14 70H66M14 100H66M14 130H66M14 160H66" stroke="var(--line)"/><path d="M2 190 Q 10 100 2 10 M78 190 Q 70 100 78 10 M2 190L78 120L2 50M78 190L2 120L78 50M2 10H78" stroke="var(--rust)" stroke-width="2.4"/></g>
+    <!-- 9 megaestructura -->
+    <g transform="translate(740 20)"><path d="M10 190V10M70 190V10" stroke="var(--rust)" stroke-width="5"/><path d="M10 70H70M10 130H70" stroke="var(--rust)" stroke-width="5"/><path d="M25 190V10M40 190V10M55 190V10M10 30H70M10 50H70M10 90H70M10 110H70M10 150H70M10 170H70" stroke="var(--ink)" stroke-width=".8"/></g>
+    <!-- 10 reticulada -->
+    <g transform="translate(830 20)" stroke="var(--ink)"><path d="M0 190L20 10L40 190M5 145H35M10 100H30M15 55H25M0 190L35 145L10 100L30 55L20 10M40 190L5 145L30 100L15 55"/></g>
+  </g>
+  <g font-size="11" fill="var(--ink)" text-anchor="middle">
+    <text x="60" y="232">Pórtico</text><text x="150" y="232">Tabiques</text><text x="240" y="232">Núcleo</text><text x="331" y="232">Tubo</text><text x="331" y="246">aporticado</text><text x="420" y="232">Tubo</text><text x="420" y="246">arriostrado</text><text x="510" y="232">Núcleo +</text><text x="510" y="246">outrigger</text><text x="601" y="232">Diagrid</text><text x="690" y="232">Exo-</text><text x="690" y="246">esqueleto</text><text x="780" y="232">Mega-</text><text x="780" y="246">estructura</text><text x="850" y="232">Reticulada</text>
+  </g>
+</svg></div>
+<figcaption><b>Propuesta · catálogo de sistemas.</b> Se suman tubo en tubo, haz de tubos y sistema dual (pórtico + tabiques). En gris, la estructura interna; en óxido, los elementos dominantes.</figcaption>
+</figure>
+<div class="tbl"><table>
+<thead><tr><th>Sistema</th><th>Modelo analítico de verificación</th><th>Clave didáctica</th></tr></thead>
+<tbody>
+<tr><td>Pórtico / tubo aporticado</td><td>Viga de corte: GA<sub>eq</sub> = Σ 12EI<sub>c</sub>/h² · factor de rigidez de vigas; shear lag en el tubo</td><td>Por qué el tubo deja de ser eficiente al crecer (shear lag)</td></tr>
+<tr><td>Tabiques / núcleo (incluidos curvos)</td><td>Viga de flexión EI con área de corte κGA (Timoshenko); reparto por rigidez y torsión por excentricidad</td><td>Centro de rigidez vs. centro de masa</td></tr>
+<tr><td>Dual / tabique-pórtico</td><td>Viga acoplada flexión-corte (parámetro αH de interacción)</td><td>Cambio de curvatura de la deformada</td></tr>
+<tr><td>Núcleo + outrigger + cinturón</td><td>Voladizo con resortes rotacionales en los niveles de outrigger (compatibilidad de giro); altura óptima</td><td>Cómo un outrigger "endereza" el núcleo</td></tr>
+<tr><td>Diagrid / exoesqueleto</td><td>Rigidez equivalente por módulo: diagonales trabajando axialmente, EI y GA del módulo según el ángulo θ</td><td>Ángulo óptimo de diagonales (corte vs. flexión)</td></tr>
+<tr><td>Megaestructura</td><td>Pórtico gigante con megacolumnas y megavigas cada N pisos</td><td>Estructura secundaria colgada o apoyada</td></tr>
+<tr><td>Reticulada (CIRSOC 306)</td><td>Reticulado espacial; voladizo equivalente con EI = Σ A<sub>i</sub>·d<sub>i</sub>² de montantes</td><td>Relación de solidez y área expuesta al viento</td></tr>
+</tbody></table></div>
+</section>
+
+<!-- ============================================================ -->
+<section id="motor">
+<h2><span class="n">09</span>Motor de cálculo y verificación</h2>
+<h3>9.1 Dos caminos que se controlan entre sí</h3>
+<pre class="mermaid">
+flowchart LR
+  G[Geometría paramétrica] --> AM[Modelo analítico<br/>nodos · barras · láminas]
+  AM --> C[Cargas CIRSOC 101/102/103<br/>y combinaciones]
+  C --> FEM[FEM 3D<br/>Timoshenko 12 GDL + láminas<br/>diafragma rígido]
+  C --> EQ[Voladizo equivalente<br/>piso por piso en Sheets]
+  FEM --> R1[Desplazamientos, esfuerzos,<br/>períodos, derivas]
+  EQ --> R2[Doble integración EB<br/>+ término de corte Timoshenko]
+  R1 --> CMP{Comparador<br/>error %}
+  R2 --> CMP
+  CMP --> V[Verificaciones CIRSOC<br/>201 / 301 / 306]
+  V --> REP[Memoria de cálculo didáctica]
+</pre>
+
+<h3>9.2 Verificación analítica (lo que vive en el Sheets)</h3>
+<p>La torre se reduce a un voladizo empotrado con propiedades variables EI(z) y κGA(z), una fila por piso. La doble integración se hace numéricamente (regla del trapecio o Simpson) para que funcione con un perfil variable y cada paso sea una columna visible:</p>
+<div class="formula">Euler-Bernoulli (flexión):   EI(z) · v''(z) = M(z)
+   θ(z) = ∫₀ᶻ M/EI dz            (1ª integración, giro;   θ(0) = 0)
+   v_f(z) = ∫₀ᶻ θ dz             (2ª integración, flecha; v(0) = 0)
+
+Timoshenko (agrega corte):    v_s'(z) = V(z) / (κ·G·A(z))
+   v(z) = v_f(z) + v_s(z)
+
+Caso cerrado de control (sección constante, carga uniforme q):
+   v_top = q·H⁴/(8·EI) + q·H²/(2·κGA)
+
+Elemento FEM Timoshenko:  Φ = 12·EI / (κ·G·A·L²)   → k_flex = 12EI/(L³(1+Φ)), …</div>
+<figure>
+<div class="svgbox"><svg id="chart" viewBox="0 0 640 380" role="img" aria-label="Deformada lateral: Euler-Bernoulli vs Timoshenko vs FEM, voladizo de 120 m"></svg></div>
+<figcaption><b>Ejemplo ilustrativo</b> (H = 120 m, q = 40 kN/m, EI = 6·10⁹ kN·m², κGA = 1·10⁷ kN). Con solo flexión, la flecha en el tope da 172.8 mm. Sumando el corte (Timoshenko) da 201.6 mm, un 14 % más. Los puntos simulan un FEM de 12 elementos Timoshenko, que reproduce la solución exacta en los nodos. En un tubo aporticado o un diagrid, el término de corte pesa mucho más que en un núcleo.</figcaption>
+</figure>
+
+<h3>9.3 Capacidades del FEM por fase</h3>
+<div class="cards">
+<div class="card"><h4>F3 · Lineal estático</h4><p>Barras 3D Euler-Bernoulli y Timoshenko, liberaciones, offsets rígidos, diafragma rígido por piso, apoyos elásticos. Solver de matriz dispersa en un Web Worker.</p></div>
+<div class="card"><h4>F5 · Dinámica y 2º orden</h4><p>Masas por piso, modal (Lanczos o subespacio), espectral CIRSOC 103 (SRSS/CQC), P-Δ, distorsiones de piso, torsión accidental.</p></div>
+<div class="card"><h4>F6 · Láminas</h4><p>Cuadriláteros tipo MITC4/DKMQ para tabiques planos y curvos, núcleo con vanos y losas. Integración de esfuerzos por tabique ("pier").</p></div>
+<div class="card"><h4>F9 · Avanzado (opcional)</h4><p>Pandeo global, etapas constructivas y acortamiento de columnas, no linealidad de riendas (reticuladas atirantadas).</p></div>
+</div>
+<div class="callout"><strong>Batería de validación (desde el día 1)</strong>Cada versión debe pasar casos con solución cerrada: voladizo y biempotrada (EB y Timoshenko), pórtico simple, frecuencias de un voladizo, equilibrio ΣR = ΣP, tabique curvo contra section-properties, ejemplos del CIRSOC resueltos a mano por nosotros y contraste con Pynite. Ninguna funcionalidad se da por terminada sin su caso de validación.</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="sheets">
+<h2><span class="n">10</span>Sincronización bidireccional con Google Sheets</h2>
+<h3>10.1 Principio: una sola verdad, dos vistas</h3>
+<p>El <b>modelo de datos</b> es único y cada dato tiene un ID estable. Tres reglas lo ordenan:</p>
+<ol>
+<li><b>Celdas de entrada</b> (azul): se editan en la app o en el Sheets y el cambio aparece del otro lado.</li>
+<li><b>Celdas calculadas</b> (blanco): son <em>fórmulas reales del Sheets</em>. La app evalúa <em>la misma fórmula</em> con un motor compatible, así el alumno puede abrir la celda y ver exactamente qué cuenta hace la app.</li>
+<li><b>Resultados FEM</b> (verde): los escribe la app (el FEM no se puede hacer en celdas). En el Sheets son de solo lectura y llevan sello de versión.</li>
+</ol>
+<div class="legend"><span><i style="background:var(--cell-in)"></i>entrada editable</span><span><i style="background:var(--cell-calc)"></i>fórmula (Sheets = app)</span><span><i style="background:var(--cell-fem)"></i>resultado FEM (lo escribe la app)</span></div>
+<div class="tbl"><table class="sheetmock">
+<thead><tr><th></th><th>A · Nivel</th><th>B · z [m]</th><th>C · h [m]</th><th>D · s(z)</th><th>E · EI [kN·m²]</th><th>F · κGA [kN]</th><th>G · V [kN]</th><th>H · M [kN·m]</th><th>I · θ [rad]</th><th>J · v_f [mm]</th><th>K · v_s [mm]</th><th>L · v_FEM [mm]</th><th>M · error</th></tr></thead>
+<tbody>
+<tr><th>5</th><td class="in">P40</td><td class="calc">120.0</td><td class="in">3.00</td><td class="calc">=1+($B$1-1)*B5/$B$2</td><td class="calc">=EI0*D5^4</td><td class="calc">=GA0*D5^2</td><td class="calc">=G6+q*C5</td><td class="calc">=H6+G6*C5</td><td class="calc">=I6+(H5/E5+H6/E6)/2*C5</td><td class="calc">=J6+(I5+I6)/2*C5*1000</td><td class="calc">=K6+G5/F5*C5*1000</td><td class="fem">201.4</td><td class="calc">=L5/(J5+K5)-1</td></tr>
+<tr><th>6</th><td class="in">P39</td><td class="calc">117.0</td><td class="in">3.00</td><td class="calc">0.712</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="fem">195.8</td><td class="calc">0.1 %</td></tr>
+<tr><th>…</th><td class="in">…</td><td class="calc">…</td><td class="in">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="calc">…</td><td class="fem">…</td><td class="calc">…</td></tr>
+</tbody></table></div>
+<p class="pill">Pestaña 11 · Verificación analítica (maqueta). Las fórmulas muestran la doble integración por trapecios piso a piso. Las filas se ordenan del tope a la base para que V y M se acumulen hacia abajo.</p>
+
+<h3>10.2 Pestañas previstas del libro</h3>
+<div class="tbl"><table>
+<thead><tr><th>Pestaña</th><th>Contenido</th><th>Quién escribe</th></tr></thead>
+<tbody>
+<tr><td>00_LEEME</td><td>Leyenda de colores, versión del modelo, cómo editar</td><td>app</td></tr>
+<tr><td>01_Proyecto</td><td>Ubicación, destino, zona sísmica y de viento, unidades</td><td>ambos</td></tr>
+<tr><td>02_Materiales</td><td>Hormigones, aceros (f'c, E, G, ν, γ)</td><td>ambos</td></tr>
+<tr><td>03_Secciones</td><td>Secciones paramétricas y libres: vértices, arcos (bulge), propiedades</td><td>ambos / fórmulas</td></tr>
+<tr><td>04_Niveles</td><td>Pisos: z, altura, planta llave, masa</td><td>ambos</td></tr>
+<tr><td>05_Perfil</td><td>Funciones s(z), θ(z), traslación, morph, retranqueos</td><td>ambos / fórmulas</td></tr>
+<tr><td>06_Sistema</td><td>Sistema estructural y parámetros del generador (módulo diagrid, niveles de outrigger…)</td><td>ambos</td></tr>
+<tr><td>07_Elementos</td><td>Nodos y barras generados (con override manual)</td><td>app (+ overrides)</td></tr>
+<tr><td>08_Tablas_CIRSOC</td><td>Coeficientes que carga el usuario de su ejemplar (zonas, K<sub>z</sub>, espectros…)</td><td>usuario</td></tr>
+<tr><td>09_Viento_102 · 10_Sismo_103</td><td>Cálculo de cargas paso a paso</td><td>fórmulas</td></tr>
+<tr><td>11_Verif_Analitica</td><td>Doble integración + Timoshenko por piso</td><td>fórmulas + FEM</td></tr>
+<tr><td>12_Resultados_FEM</td><td>Desplazamientos, esfuerzos, modos, derivas</td><td>app</td></tr>
+<tr><td>13_Diseño_201_301_306</td><td>Verificaciones de elementos, D/C</td><td>fórmulas + app</td></tr>
+<tr><td>_meta · _cambios</td><td>Contador de revisión, registro de quién cambió qué y cuándo</td><td>app + Apps Script</td></tr>
+</tbody></table></div>
+
+<h3>10.3 Mecanismo técnico</h3>
+<pre class="mermaid">
+sequenceDiagram
+  participant U as Alumno (app web)
+  participant A as App (modelo en memoria + IndexedDB)
+  participant S as Google Sheets API v4
+  participant G as Apps Script (onEdit en el Sheets)
+  U->>A: cambia altura de piso P12
+  A->>A: recalcula fórmulas localmente (misma sintaxis)
+  A->>S: values.batchUpdate (celda entrada) + _meta.rev++
+  Note over S,G: los cambios por API NO disparan onEdit, así se evita el eco
+  U->>S: edita f'c en el Sheets a mano
+  S->>G: onEdit(e)
+  G->>S: _meta.rev++ y registra el rango en _cambios
+  loop cada 2–3 s (o al volver a la pestaña)
+    A->>S: lee _meta.rev
+    S-->>A: rev nueva
+    A->>S: batchGet de los rangos cambiados
+    A->>A: actualiza modelo y 3D, marca "FEM desactualizado"
+  end
+</pre>
+<ul>
+<li><b>Autenticación</b>: Google Identity Services (OAuth en el navegador). Sin servidor propio en la fase 1. El alumno conecta su propio Sheets.</li>
+<li><b>Sin bucles de eco</b>: el <code>onEdit</code> simple no se dispara con escrituras hechas por la API, y los <code>onEdit</code> simples sí pueden escribir en la misma hoja, así que no hace falta autorizar un trigger instalable.</li>
+<li><b>Conflictos</b>: última escritura gana por celda, con marca de tiempo. Si la app y el Sheets cambiaron la misma celda entre dos sondeos, la app lo resalta y pregunta.</li>
+<li><b>Offline</b>: cola de cambios en IndexedDB que se envía al reconectar.</li>
+<li><b>Compatibilidad Excel</b>: limitar las fórmulas a un subconjunto común Sheets/Excel (sin QUERY, IMPORTRANGE ni ARRAYFORMULA) y exportar a .xlsx con las fórmulas.</li>
+<li><b>Tiempo real "de verdad"</b> (fase posterior): backend liviano (Cloud Run o Firebase) que recibe webhooks del Apps Script y empuja por WebSocket.</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="didactica">
+<h2><span class="n">11</span>Didáctica e interfaz</h2>
+<figure>
+<div class="svgbox"><svg viewBox="0 0 960 470" role="img" aria-label="Maqueta de la interfaz: pasos a la izquierda, visor 3D al centro, panel didáctico a la derecha, estado de sincronización arriba">
+  <rect width="960" height="470" fill="var(--bg)" stroke="var(--line)"/>
+  <rect width="960" height="36" fill="var(--paper)" stroke="var(--line)"/>
+  <text x="14" y="23" font-size="14" font-weight="600" fill="var(--ink)">Torre 3D · Proyecto: Mirador Costanera</text>
+  <rect x="640" y="9" width="150" height="18" rx="9" fill="var(--cell-fem)" stroke="var(--ok)"/><text x="652" y="22" font-size="11" fill="var(--ok)">● Sheets sincronizado · rev 214</text>
+  <rect x="800" y="9" width="146" height="18" rx="9" fill="var(--rust-soft)" stroke="var(--rust)"/><text x="812" y="22" font-size="11" fill="var(--rust)">FEM desactualizado · ▶ Analizar</text>
+  <!-- pasos -->
+  <rect x="0" y="36" width="190" height="434" fill="var(--paper)" stroke="var(--line)"/>
+  <g font-size="12" fill="var(--ink)">
+    <text x="14" y="62" fill="var(--muted)">FLUJO DE TRABAJO</text>
+    <text x="14" y="88">✓ 1 Proyecto y normas</text><text x="14" y="112">✓ 2 Plantas y perfil</text><text x="14" y="136">✓ 3 Sistema estructural</text>
+    <rect x="6" y="146" width="178" height="24" fill="var(--blue-soft)"/><text x="14" y="163" fill="var(--blue)" font-weight="600">● 4 Cargas: Viento 102</text>
+    <text x="14" y="190" fill="var(--muted)">○ 5 Sismo 103</text><text x="14" y="214" fill="var(--muted)">○ 6 Análisis FEM</text><text x="14" y="238" fill="var(--muted)">○ 7 Verificación analítica</text><text x="14" y="262" fill="var(--muted)">○ 8 Diseño 201/301</text><text x="14" y="286" fill="var(--muted)">○ 9 Memoria de cálculo</text>
+    <text x="14" y="330" fill="var(--muted)">MODO</text>
+    <rect x="14" y="340" width="76" height="22" fill="var(--blue)"/><text x="24" y="355" fill="var(--paper)">Aprender</text>
+    <rect x="94" y="340" width="76" height="22" fill="var(--paper)" stroke="var(--line)"/><text x="108" y="355">Experto</text>
+  </g>
+  <!-- visor 3D -->
+  <rect x="190" y="36" width="440" height="434" fill="var(--paper)" stroke="var(--line)"/>
+  <g transform="translate(410 440)">
+    <path d="M-70 0 C -80 -120, -40 -250, -34 -370 L 34 -370 C 40 -250, 80 -120, 70 0 Z" fill="var(--blue-soft)" stroke="var(--blue)"/>
+    <g stroke="var(--blue)" stroke-width=".7" opacity=".7"><path d="M-70 0L-50 -60L-30 0M-30 0L-10 -60L10 0M10 0L30 -60L50 0M50 0L70 0M-74 -60H74M-50 -60L-30 -120L-10 -60L10 -120L30 -60L50 -120"/></g>
+    <g fill="var(--rust)"><path d="M-160 -330 h80 l-6 -4 m6 4 l-6 4" stroke="var(--rust)" stroke-width="2" fill="none"/><path d="M-160 -250 h76" stroke="var(--rust)" stroke-width="2"/><path d="M-160 -170 h70" stroke="var(--rust)" stroke-width="2"/><path d="M-160 -90 h60" stroke="var(--rust)" stroke-width="2"/><path d="M-160 -20 h48" stroke="var(--rust)" stroke-width="2"/></g>
+    <text x="-170" y="-346" font-size="11" fill="var(--rust)">q(z) viento</text>
+    <path d="M-150 -40 V -360" stroke="var(--rust)" stroke-dasharray="3 3"/>
+  </g>
+  <text x="204" y="58" font-size="11" fill="var(--muted)">Vista 3D · presiones CIRSOC 102 · clic en un piso para ver su cálculo</text>
+  <!-- panel didáctico -->
+  <rect x="630" y="36" width="330" height="434" fill="var(--paper)" stroke="var(--line)"/>
+  <g font-size="12" fill="var(--ink)">
+    <text x="646" y="62" font-weight="600">q_z en el piso 32 (z = 96 m)</text>
+    <rect x="646" y="72" width="70" height="20" fill="var(--blue)"/><text x="656" y="86" fill="var(--paper)">¿Qué es?</text>
+    <rect x="720" y="72" width="104" height="20" fill="var(--paper)" stroke="var(--line)"/><text x="728" y="86">¿Cómo se calcula?</text>
+    <rect x="828" y="72" width="116" height="20" fill="var(--paper)" stroke="var(--line)"/><text x="836" y="86">¿Dónde lo pide?</text>
+    <text x="646" y="118">Presión dinámica del viento a la</text>
+    <text x="646" y="134">altura z. Crece con la altura</text>
+    <text x="646" y="150">porque el viento frena menos</text>
+    <text x="646" y="166">lejos del suelo.</text>
+    <rect x="646" y="180" width="298" height="74" fill="var(--bg)" stroke="var(--line)"/>
+    <text x="656" y="200">q_z = 0.613 · K_z · K_zt · K_d · V²</text>
+    <text x="656" y="220" fill="var(--blue)">    = 0.613 · 1.21 · 1.00 · 0.85 · 45²</text>
+    <text x="656" y="242" fill="var(--blue)" font-weight="600">    = 1.28 kN/m²</text>
+    <text x="646" y="276" fill="var(--muted)">Referencia: CIRSOC 102 · art. (n.º) · Tabla (n.º)</text>
+    <text x="646" y="296" fill="var(--blue)">↗ Abrir celda 09_Viento_102!H34</text>
+    <text x="646" y="330" font-weight="600">Comprobá lo aprendido</text>
+    <text x="646" y="350">Si la exposición pasa de B a C,</text>
+    <text x="646" y="366">¿q_z sube o baja? [ Sube ] [ Baja ]</text>
+    <text x="646" y="404" fill="var(--muted)">Valores de ejemplo; los coeficientes</text>
+    <text x="646" y="420" fill="var(--muted)">reales salen de tu ejemplar del CIRSOC.</text>
+  </g>
+</svg></div>
+<figcaption><b>Propuesta · interfaz principal.</b> Flujo guiado por pasos, visor 3D clicable y panel didáctico de tres capas con vínculo directo a la celda del Sheets. Arriba, el estado de sincronización y del análisis.</figcaption>
+</figure>
+<div class="cards">
+<div class="card"><h4>Tres capas por resultado</h4><p>Qué es · cómo se calcula (fórmula con valores reemplazados) · dónde lo pide el CIRSOC (artículo).</p></div>
+<div class="card"><h4>Camino de cargas animado</h4><p>Flechas que bajan desde la fachada a la losa, del diafragma a los tabiques y núcleo, y de ahí a la fundación.</p></div>
+<div class="card"><h4>Semáforo D/C</h4><p>Color por relación demanda/capacidad, con explicación de qué ajustar para mejorarla.</p></div>
+<div class="card"><h4>Comparar sistemas</h4><p>La misma torre con tres sistemas lado a lado: flecha, período y consumo de material.</p></div>
+<div class="card"><h4>Modo "a mano"</h4><p>El alumno completa una celda antes de que la app la revele; la app corrige.</p></div>
+<div class="card"><h4>Memoria de cálculo</h4><p>Documento que se exporta con índice, hipótesis, fórmulas, resultados y referencias CIRSOC.</p></div>
+</div>
+</section>
+
+<!-- ============================================================ -->
+<section id="arquitectura">
+<h2><span class="n">12</span>Arquitectura de software</h2>
+<pre class="mermaid">
+flowchart TB
+  subgraph UI[Interfaz · TypeScript]
+    SK[Bocetador 2D<br/>JSXGraph]
+    V3[Visor 3D<br/>Three.js]
+    DP[Panel didáctico<br/>KaTeX]
+    WZ[Flujo por pasos]
+  end
+  subgraph CORE[Núcleo · TypeScript puro, testeable]
+    M[(TowerModel JSON<br/>IDs estables · versionado)]
+    GEO[geometry/<br/>perfiles, plantas, Green, CSG]
+    GEN[systems/<br/>generadores: núcleo, diagrid, outrigger…]
+    LD[loads/<br/>101 · 102 · 103]
+    FE[fem/<br/>ensamblado, solver disperso, modal]
+    AN[analytic/<br/>doble integración, Timoshenko]
+    DS[design/<br/>201 · 301 · 306]
+    FX[formula/<br/>evaluador compatible Sheets]
+  end
+  subgraph IO[Integraciones]
+    GS[Google Sheets API v4 + Apps Script]
+    XL[Exportar .xlsx / IFC / DXF / PDF]
+    IDB[(IndexedDB offline)]
+  end
+  UI --> M
+  M --> GEO --> GEN --> FE
+  M --> LD --> FE
+  M --> AN
+  FE --> DS
+  AN --> DS
+  FX --- M
+  M <--> GS
+  M --> XL
+  M <--> IDB
+  FE -. Web Worker / WASM .- FE
+</pre>
+<ul>
+<li><b>Monorepo</b> con Vite, TypeScript estricto y Vitest. El núcleo no depende de la interfaz, así se puede probar contra los casos de validación en CI.</li>
+<li><b>Solver</b>: primero TypeScript legible (es el que se enseña). Si hace falta velocidad, una versión WASM con los mismos tests, como hace Awatif.</li>
+<li><b>Unidades</b>: SI internamente (kN, m). Conversión solo en la vista. Cada celda del Sheets lleva su unidad en el encabezado.</li>
+<li><b>Licencia del proyecto</b>: a decidir (ver <a href="#preguntas">P7</a>). Si queremos reusar código AGPL (PORTICO, Open FEM Studio), nuestro proyecto tendría que ser AGPL.</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section id="plan">
+<h2><span class="n">13</span>Plan de desarrollo</h2>
+<p>Las fases son incrementales y cada una termina en algo usable y validado. Las duraciones son relativas (semanas de una persona con asistencia de IA) y se ajustan cuando definamos la dedicación.</p>
+<pre class="mermaid">
+gantt
+  dateFormat  YYYY-MM-DD
+  axisFormat  %b
+  section Base
+  F0 Propuesta (este documento)           :done, f0, 2026-11-13, 7d
+  F1 Esqueleto, modelo y sync Sheets MVP  :f1, after f0, 21d
+  section Geometría
+  F2 Bocetador 2D + torre paramétrica 3D  :f2, after f1, 28d
+  section Cálculo
+  F3 FEM barras 3D + verif. analítica     :f3, after f2, 28d
+  F4 Cargas 101/102/103 + combinaciones   :f4, after f3, 28d
+  F5 Modal, espectral, P-Δ, derivas       :f5, after f4, 21d
+  F6 Láminas: tabiques, núcleo, arcos     :f6, after f5, 35d
+  section Diseño y cierre
+  F7 Diseño 201 / 301                     :f7, after f6, 35d
+  F8 Reticuladas 306 + miradores          :f8, after f7, 21d
+  F9 Memoria, IFC, avanzado               :f9, after f8, 28d
+</pre>
+<div class="tbl"><table>
+<thead><tr><th>Fase</th><th>Entregable</th><th>Criterio de aceptación</th></tr></thead>
+<tbody>
+<tr><td>F1</td><td>Repo, TowerModel v1, conexión OAuth a Sheets, pestañas 00–05, sync bidireccional de celdas de entrada</td><td>Editar una celda en el Sheets se ve en la app en menos de 5 s y viceversa, sin eco ni pérdida, incluso offline</td></tr>
+<tr><td>F2</td><td>Bocetador (polilínea, compás, arco 3 pts, spline), propiedades de sección, perfil variable, tabique en arco, vista 3D</td><td>Propiedades de 10 secciones iguales a las de section-properties (±0.5 %). Mismas propiedades en la app y en el Sheets</td></tr>
+<tr><td>F3</td><td>Solver EB/Timoshenko 3D, diafragma rígido, pestaña 11 de verificación analítica</td><td>Voladizo, biempotrada y pórtico exactos. Torre de perfil variable: FEM vs. doble integración con error &lt; 2 %</td></tr>
+<tr><td>F4</td><td>Módulos 101, 102 y 103 (estático), combinaciones</td><td>Ejemplos resueltos a mano por nosotros que coinciden. Contraste de viento con Zonda</td></tr>
+<tr><td>F5</td><td>Modal, espectral, P-Δ, distorsiones</td><td>Frecuencias de un voladizo exactas. Período FEM vs. Rayleigh/Stodola del Sheets</td></tr>
+<tr><td>F6</td><td>Láminas MITC4/DKMQ, núcleo con vanos, tabique curvo, generadores diagrid, outrigger y exoesqueleto</td><td>Patch tests, tabique en voladizo vs. Timoshenko, comparación con Pynite</td></tr>
+<tr><td>F7</td><td>Verificaciones 201 (incluidos pilares de forma libre P-M-M) y 301</td><td>Ejemplos de aplicación propios. Diagramas de interacción vs. concrete-properties</td></tr>
+<tr><td>F8</td><td>Plantilla reticulada (306), plantilla mirador</td><td>Torre reticulada típica: esfuerzos en montantes vs. cálculo manual</td></tr>
+<tr><td>F9</td><td>Memoria exportable, IFC, etapas constructivas (opcional)</td><td>Memoria legible por un docente sin abrir la app</td></tr>
+</tbody></table></div>
+</section>
+
+<!-- ============================================================ -->
+<section id="legal">
+<h2><span class="n">14</span>Copyright y licencias: reglas del proyecto</h2>
+<div class="cards">
+<div class="card"><h4>Ideas y métodos: libres</h4><p>El método de rigidez, la doble integración y las fórmulas de Timoshenko no tienen dueño. Los implementamos nosotros desde los libros y el CIRSOC.</p></div>
+<div class="card"><h4>Código MIT / BSD / Apache</h4><p>Se puede usar como dependencia o adaptar, conservando el aviso de copyright y licencia (archivo <code>THIRD_PARTY_NOTICES</code>).</p></div>
+<div class="card"><h4>Código GPL / AGPL / LGPL</h4><p>No copiamos código salvo que el proyecto adopte la misma licencia. Solo leemos para entender las ideas. Las LGPL se pueden usar como librería sin modificar.</p></div>
+<div class="card"><h4>Sin licencia</h4><p>Todos los derechos reservados: solo se mira, no se copia.</p></div>
+<div class="card"><h4>Software comercial</h4><p>Solo funcionalidades descritas públicamente. Ni capturas, ni manuales, ni ingeniería inversa.</p></div>
+<div class="card"><h4>Texto del CIRSOC</h4><p>Los reglamentos tienen derechos del INTI. La app guarda <b>referencias</b> (n.º de artículo o tabla) y fórmulas. Las tablas de coeficientes las carga cada usuario desde su ejemplar en la pestaña 08. No se redistribuye texto ni tablas completas.</p></div>
+</div>
+<p class="pill">Las imágenes de la galería se redistribuyen con atribución según las licencias de cada repositorio (MIT, Apache-2.0, GPL-3.0, AGPL-3.0), que permiten la redistribución con aviso.</p>
+</section>
+
+<!-- ============================================================ -->
+<section id="preguntas">
+<h2><span class="n">15</span>Preguntas abiertas para cerrar la propuesta</h2>
+<ol class="qs">
+<li><b>Ediciones CIRSOC.</b> ¿Qué ediciones tenés del 103 (Partes I, II y IV), 301 y 306? ¿Qué es exactamente el CIRSOC 200-2024 en tu ejemplar? Así fijamos el mapa normativo.</li>
+<li><b>"Lo que dicta el CIRSOC de torres en altura".</b> No conozco un artículo del CIRSOC que exija verificar con doble integración o Timoshenko (el 103 exige distorsiones de piso, P-Δ, etc.; el 306 es para antenas). ¿Te referís a un artículo concreto? Si es así, pasame el número y lo usamos como columna vertebral de la pestaña 11.</li>
+<li><b>"Spin line".</b> ¿Es spline (curva suave por puntos de control), revolución de un perfil (spin), o ambas? En la propuesta incluí las dos.</li>
+<li><b>Exoesqueleto.</b> ¿Lo pensás como estructura exterior que soporta todo (diagrid o megapórtico perimetral), o como refuerzo exterior separado de la fachada (con vínculos a las losas)? Cambia el generador y el modelo de vínculos.</li>
+<li><b>Sheets: ¿uno por proyecto o uno por alumno?</b> ¿Lo crea la app a partir de una plantilla o conectás uno existente? ¿Lo van a editar varias personas a la vez?</li>
+<li><b>Motor de fórmulas.</b> ¿Aceptás que el proyecto sea GPL-3.0 (lo que habilita HyperFormula), o preferís una licencia permisiva y escribimos un evaluador propio de un subconjunto de funciones?</li>
+<li><b>Licencia y uso.</b> ¿El proyecto será abierto (MIT o AGPL) o privado? ¿Uso personal, de cátedra o comercial a futuro?</li>
+<li><b>Fundaciones.</b> ¿Entran en el alcance (CIRSOC 401, interacción suelo-estructura) o la torre arranca empotrada?</li>
+<li><b>Prioridad de tipología.</b> ¿Con cuál arrancamos la F2–F3: edificio en altura, mirador o reticulada?</li>
+<li><b>Sesión anterior.</b> ¿Querés que revise el trabajo de la otra sesión (sin la planilla de cátedra) para reutilizar conceptos o datos de prueba? Necesitaría que lo subas a este repositorio.</li>
+</ol>
+</section>
+
+<footer>
+<p>Fuentes normativas consultadas: <a href="https://www.argentina.gob.ar/normativa/nacional/norma-422490/texto">Resolución 11/2026 (CIRSOC 101-2025, 102-2025, 200-2024, 201-2025)</a> · <a href="https://www.inti.gob.ar/areas/servicios-industriales/construcciones-e-infraestructura/cirsoc/reglame">INTI-CIRSOC reglamentos</a> · <a href="https://info.cype.com/en/new-feature/implementation-inpres-cirsoc-103-argentina/">CYPE: implementación INPRES-CIRSOC 103</a>. Sincronización: <a href="https://www.svix.com/resources/guides/google-sheets-webhook-integration-tutorial/">Svix: webhooks con Google Sheets</a> · <a href="https://groups.google.com/g/google-apps-script-community/c/CMwonPyUBT8">Apps Script community: onEdit y UrlFetchApp</a>.</p>
+<p>Documento de propuesta: no es un cálculo estructural. Los valores numéricos de las maquetas son ilustrativos.</p>
+</footer>
+</main>
+</div>
+</div>
+
+<script>
+/* Gráfico de verificación analítica */
+(function(){
+  const H=120,q=40,EI=6e9,GA=1e7, svg=document.getElementById('chart');
+  const L=60,T=20,W=540,Hh=310, xmax=220;
+  const X=v=>L+v/xmax*W, Y=z=>T+Hh-z/H*Hh;
+  const ns='http://www.w3.org/2000/svg';
+  const el=(t,a,txt)=>{const e=document.createElementNS(ns,t);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;svg.appendChild(e);return e};
+  el('rect',{x:0,y:0,width:640,height:380,fill:'var(--paper)'});
+  for(let v=0;v<=xmax;v+=40){el('line',{x1:X(v),x2:X(v),y1:T,y2:T+Hh,stroke:'var(--line)'});el('text',{x:X(v),y:T+Hh+16,'font-size':11,fill:'var(--muted)','text-anchor':'middle'},v)}
+  for(let z=0;z<=H;z+=20){el('line',{x1:L,x2:L+W,y1:Y(z),y2:Y(z),stroke:'var(--line)'});el('text',{x:L-8,y:Y(z)+4,'font-size':11,fill:'var(--muted)','text-anchor':'end'},z)}
+  el('text',{x:L+W/2,y:T+Hh+34,'font-size':12,fill:'var(--ink)','text-anchor':'middle'},'desplazamiento lateral v [mm]');
+  el('text',{x:16,y:T+Hh/2,'font-size':12,fill:'var(--ink)','text-anchor':'middle',transform:`rotate(-90 16 ${T+Hh/2})`},'altura z [m]');
+  const f=x=>q*x*x*(6*H*H-4*H*x+x*x)/(24*EI)*1000, s=x=>q*(H*x-x*x/2)/GA*1000;
+  let pe='',pt='';for(let i=0;i<=60;i++){const x=H*i/60;pe+=(i?'L':'M')+X(f(x)).toFixed(1)+' '+Y(x).toFixed(1);pt+=(i?'L':'M')+X(f(x)+s(x)).toFixed(1)+' '+Y(x).toFixed(1)}
+  el('path',{d:pe,fill:'none',stroke:'var(--muted)','stroke-width':2,'stroke-dasharray':'6 4'});
+  el('path',{d:pt,fill:'none',stroke:'var(--blue)','stroke-width':2.5});
+  for(let i=1;i<=12;i++){const x=H*i/12;el('circle',{cx:X(f(x)+s(x)),cy:Y(x),r:4,fill:'var(--rust)',stroke:'var(--paper)','stroke-width':1.5})}
+  el('text',{x:X(f(H))-10,y:Y(H)+4,'font-size':11,fill:'var(--muted)','text-anchor':'end'},'EB 172.8 mm');
+  el('text',{x:X(f(H)+s(H))-10,y:Y(H)+22,'font-size':11,fill:'var(--blue)','text-anchor':'end'},'Timoshenko 201.6 mm');
+  const lg=[[ 'var(--muted)','Euler-Bernoulli (solo flexión)','6 4'],['var(--blue)','Timoshenko (flexión + corte)','']];
+  lg.forEach((l,i)=>{el('line',{x1:L+300,x2:L+330,y1:T+Hh-60+i*18,y2:T+Hh-60+i*18,stroke:l[0],'stroke-width':2.5,'stroke-dasharray':l[2]});el('text',{x:L+336,y:T+Hh-56+i*18,'font-size':11,fill:'var(--ink)'},l[1])});
+  el('circle',{cx:L+315,cy:T+Hh-24,r:4,fill:'var(--rust)'});el('text',{x:L+336,y:T+Hh-20,'font-size':11,fill:'var(--ink)'},'FEM 12 elementos (nodos)');
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  const host=document.getElementById('view'); if(!window.THREE) {host.insertAdjacentHTML('beforeend','<p style="padding:20px">No se pudo cargar Three.js.</p>');return;}
+  const css=getComputedStyle(document.documentElement);
+  const col=n=>new THREE.Color(css.getPropertyValue(n).trim()||'#888');
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true}); renderer.setPixelRatio(Math.min(2,window.devicePixelRatio));
+  host.appendChild(renderer.domElement);
+  const scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(35,1,1,5000);
+  cam.position.set(260,180,260);
+  const ctl=new THREE.OrbitControls(cam,renderer.domElement); ctl.enableDamping=true; ctl.target.set(0,70,0);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x667788,0.9)); const dl=new THREE.DirectionalLight(0xffffff,0.6); dl.position.set(200,300,100); scene.add(dl);
+  const grid=new THREE.GridHelper(300,30,0x8899aa,0x8899aa); grid.material.opacity=.25; grid.material.transparent=true; scene.add(grid);
+  let group=new THREE.Group(), lastN=-1; scene.add(group);
+  const $=id=>document.getElementById(id);
+  function plan(type,n){ // devuelve puntos de contorno (radio ~ 20 m)
+    const pts=[];
+    for(let i=0;i<n;i++){const a=i/n*Math.PI*2;let r;
+      if(type==='ellipse'){pts.push([24*Math.cos(a),16*Math.sin(a)]);continue}
+      if(type==='rect'){const c=Math.cos(a),s=Math.sin(a),p=6;r=1/Math.pow(Math.pow(Math.abs(c)/22,p)+Math.pow(Math.abs(s)/17,p),1/p);pts.push([r*c,r*s]);continue}
+      if(type==='tri'){r=19+4.5*Math.cos(3*a);pts.push([r*Math.cos(a),r*Math.sin(a)]);continue}
+      r=19+3*Math.sin(2*a)+2.2*Math.cos(5*a+.6); pts.push([r*Math.cos(a)+2*Math.sin(a),r*Math.sin(a)]);}
+    return pts;}
+  function build(){
+    scene.remove(group); group.traverse(o=>{o.geometry&&o.geometry.dispose()}); group=new THREE.Group(); scene.add(group);
+    const N=+$('d-floors').value, h=3.5, H=N*h, sT=+$('d-taper').value, b=+$('d-bulge').value, tw=+$('d-twist').value*Math.PI/180, type=$('d-plan').value, sys=$('d-sys').value;
+    $('o-floors').textContent=N; $('o-taper').textContent=sT.toFixed(2); $('o-bulge').textContent=b.toFixed(2); $('o-twist').textContent=$('d-twist').value+'°';
+    const nP=sys==='tube'?48:24, base=plan(type,nP);
+    const lv=[]; let area0=0,areaT=0,vol=0;
+    for(let k=0;k<=N;k++){const z=k*h, zt=z/H, s=1+(sT-1)*zt+b*Math.sin(Math.PI*zt), th=tw*zt;
+      const P=base.map(([x,y])=>{const X=s*x,Y=s*y;return new THREE.Vector3(X*Math.cos(th)-Y*Math.sin(th),z,X*Math.sin(th)+Y*Math.cos(th))});
+      lv.push(P); let A=0; for(let i=0;i<nP;i++){const p=P[i],q=P[(i+1)%nP];A+=p.x*q.z-q.x*p.z} A=Math.abs(A)/2; if(k===0)area0=A; if(k===N)areaT=A; if(k<N)vol+=A*h;}
+    const slabM=new THREE.MeshLambertMaterial({color:col('--blue-soft'),transparent:true,opacity:.55,side:THREE.DoubleSide});
+    const edgeM=new THREE.LineBasicMaterial({color:col('--blue')});
+    const strM=new THREE.LineBasicMaterial({color:col('--rust')});
+    const inM=new THREE.LineBasicMaterial({color:col('--muted'),transparent:true,opacity:.6});
+    lv.forEach((P,k)=>{ if(k%1) return;
+      const sh=new THREE.Shape(P.map(p=>new THREE.Vector2(p.x,-p.z))); const g=new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI/2); g.translate(0,P[0].y,0);
+      group.add(new THREE.Mesh(g,slabM)); group.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(P),edgeM)); });
+    // núcleo con tabique en arco
+    const coreR=6, coreG=new THREE.CylinderGeometry(coreR,coreR,H,24,1,true,Math.PI*0.15,Math.PI*1.4); coreG.translate(0,H/2,0);
+    group.add(new THREE.Mesh(coreG,new THREE.MeshLambertMaterial({color:col('--rust-soft'),side:THREE.DoubleSide})));
+    group.add(new THREE.LineSegments(new THREE.EdgesGeometry(coreG),strM));
+    const seg=[]; const push=(a,b)=>seg.push(a,b);
+    if(sys==='exo'){ const m=4; // módulo de 4 pisos
+      for(let k=0;k+m<=N;k+=m){const A=lv[k],B=lv[k+m]; for(let i=0;i<nP;i+=2){push(A[i],B[(i+1)%nP]);push(A[(i+2)%nP],B[(i+1)%nP]);}}
+      for(let k=0;k<=N;k+=4) for(let i=0;i<nP;i++) push(lv[k][i],lv[k][(i+1)%nP]);
+    } else if(sys==='outrigger'){
+      for(let i=0;i<nP;i+=3) for(let k=0;k<N;k++) push(lv[k][i],lv[k+1][i]);
+      [Math.round(N*0.5),N].forEach(k=>{const P=lv[k];for(let i=0;i<nP;i+=6){const p=P[i],c=new THREE.Vector3(p.x,p.y,p.z).setY(0).setLength(coreR);c.y=p.y;const cb=c.clone();cb.y-=2*h;const pb=lv[k-2][i];push(c,p);push(cb,pb);push(cb,p);push(c,pb);}
+        for(let j=-2;j<=0;j++) for(let i=0;i<nP;i++) push(lv[k+j][i],lv[k+j][(i+1)%nP]);});
+    } else { for(let i=0;i<nP;i++) for(let k=0;k<N;k++) push(lv[k][i],lv[k+1][i]); }
+    group.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg),sys==='tube'?inM:strM));
+    if(N!==lastN){ctl.target.set(0,H/2,0); const d=Math.max(150,H*1.75); cam.position.set(d,H*0.62,d); lastN=N;}
+    $('readout').innerHTML=`Altura H = <b>${H.toFixed(1)} m</b><br>Área planta base = <b>${area0.toFixed(0)} m²</b><br>Área planta tope = <b>${areaT.toFixed(0)} m²</b><br>Volumen bruto ≈ <b>${(vol/1000).toFixed(1)}·10³ m³</b><br>Esbeltez H/B ≈ <b>${(H/40).toFixed(1)}</b><br><span style="color:var(--muted)">Geometría ilustrativa · sin cálculo estructural</span>`;
+  }
+  function size(){const w=host.clientWidth,h=Math.max(440,Math.min(620,w*0.8));host.style.height=h+'px';renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+  ['d-floors','d-taper','d-bulge','d-twist','d-plan','d-sys'].forEach(id=>$(id).addEventListener('input',build));
+  window.addEventListener('resize',size); size(); build();
+  (function loop(){requestAnimationFrame(loop);ctl.update();renderer.render(scene,cam)})();
+})();
+</script>
